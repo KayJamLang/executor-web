@@ -5,6 +5,7 @@ import com.github.kayjamlang.core.KayJamLexer;
 import com.github.kayjamlang.core.KayJamParser;
 import com.github.kayjamlang.core.containers.Container;
 import com.github.kayjamlang.executor.Executor;
+import com.github.kayjamlang.executor.libs.Library;
 import com.github.kayjamlang.executor.libs.main.MainLibrary;
 import org.apache.commons.codec.Charsets;
 import org.apache.http.NameValuePair;
@@ -13,12 +14,13 @@ import org.mozilla.universalchardet.UniversalDetector;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import static java.lang.System.getProperty;
 import static java.lang.System.out;
@@ -57,6 +59,18 @@ public class FastCGIApplication {
                 container.data.put("query", parseQuery(getProperty("QUERY_STRING")));
 
                 Executor executor = new Executor();
+                
+                File libDir = new File(Paths.get(System.getProperty("user.dir"),
+                        "./libs/").normalize().toString());
+                if(libDir.exists()||libDir.createNewFile()){
+                    File[] files = libDir.listFiles();
+                    if(files!=null)
+                        for(File libJar: files){
+                            if(libDir.getName().endsWith(".jar"))
+                                loadJarLibrary(executor, libJar);
+                        }
+                }
+
                 executor.setUseGetFileListener(path -> {
                     File usedFile = new File(Paths.get(file.getParentFile()
                             .getAbsolutePath(), path)
@@ -108,6 +122,27 @@ public class FastCGIApplication {
 
             out.println();
             out.print(output.toString());
+        }
+    }
+
+    private static void loadJarLibrary(Executor executor, File file) throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
+        JarFile jarFile = new JarFile(file);
+        Enumeration<JarEntry> e = jarFile.entries();
+
+        URL[] urls = { new URL("jar:file:" + file.getPath()+"!/") };
+        URLClassLoader cl = URLClassLoader.newInstance(urls);
+
+        while (e.hasMoreElements()) {
+            JarEntry je = e.nextElement();
+            if(je.isDirectory() || !je.getName().endsWith(".class")){
+                continue;
+            }
+
+            String className = je.getName().substring(0,je.getName().length()-6);
+            className = className.replace('/', '.');
+            Class<?> c = cl.loadClass(className);
+            if(c.isAssignableFrom(Library.class))
+                executor.addLibrary((Library) c.newInstance());
         }
     }
 

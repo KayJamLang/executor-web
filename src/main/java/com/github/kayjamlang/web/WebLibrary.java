@@ -1,5 +1,6 @@
 package com.github.kayjamlang.web;
 
+import com.github.kayjamlang.core.Argument;
 import com.github.kayjamlang.core.Type;
 import com.github.kayjamlang.core.containers.Function;
 import com.github.kayjamlang.executor.libs.Library;
@@ -16,8 +17,8 @@ public class WebLibrary extends Library {
             HeaderPut headerPut = (HeaderPut) mainContext.parent.data.get("headerPut");
             headerPut.put(name, value);
             return true;
-        }, new Function.Argument(Type.ANY, "name"),
-                new Function.Argument(Type.ANY, "value")));
+        }, new Argument(Type.ANY, "name"),
+                new Argument(Type.ANY, "value")));
 
         functions.add(new LibFunction("getRequest", (mainContext, context)->
                 new LibObject(object -> {
