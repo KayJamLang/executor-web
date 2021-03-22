@@ -2,10 +2,11 @@ package com.github.kayjamlang.web;
 
 import com.github.kayjamlang.core.Argument;
 import com.github.kayjamlang.core.Type;
-import com.github.kayjamlang.core.containers.Function;
+import com.github.kayjamlang.executor.Context;
 import com.github.kayjamlang.executor.libs.Library;
 import com.github.kayjamlang.executor.libs.main.MapClass;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class WebLibrary extends Library {
@@ -28,8 +29,10 @@ public class WebLibrary extends Library {
 
                     try {
                         MapClass mapClass = new MapClass();
-                        mapClass.map.putAll((Map<?, ?>) mainContext.parent.data.get("query"));
+                        Context ctx = new Context(mapClass, mainContext, false);
+                        ctx.variables.put(MapClass.FIELD_MAP, mainContext.parent.data.get("query"));
 
+                        mapClass.data.put("ctx", ctx);
                         object.addVariable("query", mapClass);
                     } catch (Exception ignored) {}
         })));
